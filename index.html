@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CarbonRoute | Dynamic Scope 3 Logistics Carbon Auditor</title>
+    <meta name="description" content="CarbonRoute is a premium activity-based carbon auditing dashboard. Track, verify, and simulate Scope 3 transport emissions against Carrier SLAs using dynamic telemetry multipliers.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Styling -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="main-header">
+        <div class="header-logo">
+            <div class="logo-orb"></div>
+            <div>
+                <h1>CarbonRoute</h1>
+                <span class="header-badge">Scope 3 Activity Auditor</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button id="btn-seed-data" class="btn btn-secondary">⚡ Seed History</button>
+            <button id="btn-simulate-live" class="btn btn-primary">➕ Simulate Live Cargo</button>
+        </div>
+    </header>
+
+    <!-- Key Performance Metrics (KPIs) -->
+    <section class="kpi-grid" aria-label="Key Performance Indicators">
+        <div class="kpi-card" id="kpi-total-shipments">
+            <span class="kpi-label">Audited Shipments</span>
+            <div class="kpi-value-container">
+                <span class="kpi-value" id="val-total-shipments">0</span>
+            </div>
+            <span class="kpi-subtext">Total runs logged</span>
+        </div>
+        
+        <div class="kpi-card" id="kpi-total-carbon">
+            <span class="kpi-label">Audited Carbon Footprint</span>
+            <div class="kpi-value-container">
+                <span class="kpi-value" id="val-actual-carbon">0.0</span>
+                <span class="kpi-unit">kg CO₂e</span>
+            </div>
+            <span class="kpi-subtext">Baseline: <span id="val-base-carbon">0.0</span> kg</span>
+        </div>
+
+        <div class="kpi-card" id="kpi-compliance-rate">
+            <span class="kpi-label">SLA Compliance Rate</span>
+            <div class="kpi-value-container">
+                <span class="kpi-value" id="val-compliance-rate">100%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="fill-compliance-rate" style="width: 100%;"></div>
+            </div>
+        </div>
+
+        <div class="kpi-card" id="kpi-total-penalties">
+            <span class="kpi-label">SLA Penalties Issued</span>
+            <div class="kpi-value-container">
+                <span class="kpi-value text-red" id="val-total-penalties">$0.00</span>
+            </div>
+            <span class="kpi-subtext">Overage charges collected</span>
+        </div>
+    </section>
+
+    <!-- Main Workspace -->
+    <main class="dashboard-grid">
+        
+        <!-- Left Panel: Configurations & Simulator -->
+        <section class="left-panel" aria-label="Control Panel">
+            
+            <!-- SLA Configurations -->
+            <div class="panel-card" id="panel-sla-config">
+                <h2 class="panel-title">📋 Carrier SLA Rate Cards</h2>
+                <p class="panel-subtitle">Set maximum permitted carbon intensities (g CO₂e / t-km) before penalties apply.</p>
+                
+                <div class="sla-sliders-container">
+                    <div class="control-group">
+                        <label for="slider-sla-road">Road SLA: <span id="val-sla-road">85.0</span> g/t-km</label>
+                        <input type="range" id="slider-sla-road" min="40" max="150" value="85" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="slider-sla-rail">Rail SLA: <span id="val-sla-rail">25.0</span> g/t-km</label>
+                        <input type="range" id="slider-sla-rail" min="15" max="50" value="25" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="slider-sla-air">Air SLA: <span id="val-sla-air">680.0</span> g/t-km</label>
+                        <input type="range" id="slider-sla-air" min="500" max="800" value="680" step="5">
+                    </div>
+                    <div class="control-group">
+                        <label for="slider-sla-ocean">Ocean SLA: <span id="val-sla-ocean">10.0</span> g/t-km</label>
+                        <input type="range" id="slider-sla-ocean" min="5" max="20" value="10" step="0.5">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Mode Comparison Simulator -->
+            <div class="panel-card" id="panel-multimodal-sim">
+                <h2 class="panel-title">🍃 Multimodal Route Simulator</h2>
+                <p class="panel-subtitle">Simulate a logistics leg and compare modes dynamically.</p>
+                
+                <form id="sim-form" onsubmit="return false;">
+                    <div class="form-row">
+                        <div class="control-group flex-1">
+                            <label for="input-origin">Origin</label>
+                            <input type="text" id="input-origin" value="Frankfurt" required>
+                        </div>
+                        <div class="control-group flex-1">
+                            <label for="input-destination">Destination</label>
+                            <input type="text" id="input-destination" value="Munich" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="control-group flex-1">
+                            <label for="slider-distance">Distance: <span id="val-distance">380</span> km</label>
+                            <input type="range" id="slider-distance" min="50" max="1500" value="380" step="10">
+                        </div>
+                        <div class="control-group flex-1">
+                            <label for="slider-weight">Weight: <span id="val-weight">15.0</span> tonnes</label>
+                            <input type="range" id="slider-weight" min="1" max="100" value="15.0" step="0.5">
+                        </div>
+                    </div>
+
+                    <div class="form-divider">Dynamic Telemetry Factors</div>
+
+                    <div class="form-row">
+                        <div class="control-group flex-1">
+                            <label for="slider-utilization">Payload Load: <span id="val-utilization">100%</span></label>
+                            <input type="range" id="slider-utilization" min="10" max="100" value="100" step="5">
+                        </div>
+                        <div class="control-group flex-1">
+                            <label for="slider-congestion">Congestion: <span id="val-congestion">0%</span></label>
+                            <input type="range" id="slider-congestion" min="0" max="100" value="0" step="5">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="control-group flex-1">
+                            <label for="slider-weather">Weather Severity: <span id="val-weather">Clear</span></label>
+                            <input type="range" id="slider-weather" min="0" max="100" value="0" step="10">
+                        </div>
+                        <div class="control-group flex-1 checkbox-group">
+                            <label class="checkbox-label" for="check-backhaul">
+                                <input type="checkbox" id="check-backhaul">
+                                Empty Backhaul Penalty
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="sim-btn-group">
+                        <button type="button" id="btn-compare-modes" class="btn btn-secondary flex-1">📊 Compare All Modes</button>
+                        <button type="button" id="btn-submit-shipment" class="btn btn-primary flex-1">💾 Audit & Save Leg</button>
+                    </div>
+                </form>
+
+                <!-- Comparison Chart container -->
+                <div class="comparison-container hidden" id="comparison-chart-section">
+                    <h3 class="comparison-title">Emission Multiplier Trade-Off</h3>
+                    <div class="chart-bars-list" id="comparison-bars">
+                        <!-- Bars dynamically loaded by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Right Panel: Live Logs -->
+        <section class="right-panel" aria-label="Audit Logs">
+            <div class="panel-card flex-column h-100" id="panel-audit-logs">
+                <div class="panel-header-row">
+                    <div>
+                        <h2 class="panel-title">🛡️ Real-Time Audit Ledger</h2>
+                        <p class="panel-subtitle">Activity-based shipment logs and SLA verification records.</p>
+                    </div>
+                    <div class="legend">
+                        <span class="legend-item"><span class="dot bg-green"></span> Compliant</span>
+                        <span class="legend-item"><span class="dot bg-red"></span> Violation</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="table-shipment-ledger">
+                        <thead>
+                            <tr>
+                                <th>Shipment ID</th>
+                                <th>Mode</th>
+                                <th>Route Details</th>
+                                <th>Dist/Weight</th>
+                                <th>Emissions (kg)</th>
+                                <th>Intensity</th>
+                                <th>SLA Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-body">
+                            <tr>
+                                <td colspan="7" class="empty-state">No shipments logged. Click "Seed History" or "Simulate Live Cargo" to populate.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Detailed Excursion Audit Modal -->
+    <div class="modal-backdrop hidden" id="modal-audit-details">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>🔍 Shipment Audit Report: <span id="modal-shipment-id">SHIP-XXXX</span></h3>
+                <button class="btn-close-modal" id="btn-close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-route-summary">
+                    <div class="route-node">
+                        <span class="node-label">Origin</span>
+                        <span class="node-name" id="modal-route-origin">Frankfurt</span>
+                    </div>
+                    <div class="route-line-container">
+                        <span class="route-mode-badge" id="modal-route-mode">ROAD</span>
+                        <div class="route-line"></div>
+                        <span class="route-line-details" id="modal-route-metrics">380 km | 15.0 tonnes</span>
+                    </div>
+                    <div class="route-node">
+                        <span class="node-label">Destination</span>
+                        <span class="node-name" id="modal-route-destination">Munich</span>
+                    </div>
+                </div>
+
+                <div class="audit-details-columns">
+                    <!-- Column 1: Calculations -->
+                    <div class="audit-col">
+                        <h4>♻️ Carbon Accounting Summary</h4>
+                        <div class="detail-row">
+                            <span>Base Emissions (GHG Factor):</span>
+                            <span class="font-bold" id="modal-base-emissions">0.0 kg</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Actual Audited Emissions:</span>
+                            <span class="font-bold text-cyan" id="modal-actual-emissions">0.0 kg</span>
+                        </div>
+                        <div class="detail-row highlight-row">
+                            <span>Carbon Variance:</span>
+                            <span class="font-bold" id="modal-carbon-variance">+0.0 kg</span>
+                        </div>
+                        
+                        <h4 style="margin-top: 1.5rem;">📶 Telemetry Adjustments</h4>
+                        <div class="multiplier-grid">
+                            <div class="mult-item">
+                                <span class="mult-val" id="modal-mult-util">1.0x</span>
+                                <span class="mult-label">Load Factor</span>
+                            </div>
+                            <div class="mult-item">
+                                <span class="mult-val" id="modal-mult-cong">1.0x</span>
+                                <span class="mult-label">Congestion</span>
+                            </div>
+                            <div class="mult-item">
+                                <span class="mult-val" id="modal-mult-weat">1.0x</span>
+                                <span class="mult-label">Weather</span>
+                            </div>
+                            <div class="mult-item">
+                                <span class="mult-val" id="modal-mult-back">No</span>
+                                <span class="mult-label">Empty Leg</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: SLA Status -->
+                    <div class="audit-col bg-panel-dark">
+                        <h4>📜 SLA Contract Verification</h4>
+                        <div class="detail-row">
+                            <span>Negotiated SLA Threshold:</span>
+                            <span id="modal-sla-threshold">0.0 g/t-km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Actual Carbon Intensity:</span>
+                            <span id="modal-actual-intensity">0.0 g/t-km</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Intensity Variance:</span>
+                            <span id="modal-intensity-variance">0%</span>
+                        </div>
+                        
+                        <div class="sla-verdict-box" id="modal-sla-verdict-container">
+                            <span class="verdict-title">VERDICT</span>
+                            <span class="verdict-value" id="modal-sla-verdict">COMPLIANT</span>
+                        </div>
+
+                        <div class="detail-row font-bold" style="margin-top: 1rem;">
+                            <span>Financial Penalty Charged:</span>
+                            <span class="text-red" id="modal-penalty-charge">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btn-print-audit">🖨️ Export Audit PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- UI Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>
